@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>For You</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Georgia, serif;
+    transition: background 1.5s ease;
+  }
+
+  body.dark { background: #000; }
+
+  #typed-text {
+    font-size: clamp(28px, 5vw, 56px);
+    color: #222;
+    letter-spacing: 2px;
+    transition: opacity 1s ease;
+  }
+
+  #typed-text.fade-out { opacity: 0; }
+
+  #cursor {
+    display: inline-block;
+    width: 3px;
+    height: 1em;
+    background: #222;
+    margin-left: 4px;
+    vertical-align: middle;
+    animation: blink 0.7s steps(1) infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .love-text {
+    position: fixed;
+    font-family: Georgia, serif;
+    color: #ff4f8b;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    font-weight: bold;
+    text-shadow: 0 0 8px #ff4f8b88;
+    transform: translate(-50%, -50%);
+  }
+</style>
+</head>
+<body>
+
+<div id="typed-text"><span id="display"></span><span id="cursor"></span></div>
+
+<script>
+const fullText = "This is for you";
+let idx = 0;
+const display = document.getElementById('display');
+const typedDiv = document.getElementById('typed-text');
+const body = document.body;
+
+const loveTexts = [];
+const NUM = 60;
+
+// Pre-compute many heart path points for smooth walking
+const PATH_POINTS = 600;
+const heartPath = [];
+
+function heartX(t) { return 16 * Math.pow(Math.sin(t), 3); }
+function heartY(t) { return -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)); }
+function clamp(min, val, max) { return Math.min(Math.max(val, min), max); }
+
+function buildHeartPath() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const cx = W / 2, cy = H / 2;
+  const scale = Math.min(W, H) * 0.032;
+  heartPath.length = 0;
+  for (let i = 0; i < PATH_POINTS; i++) {
+    const t = (i / PATH_POINTS) * 2 * Math.PI;
+    heartPath.push({
+      x: cx + heartX(t) * scale,
+      y: cy + heartY(t) * scale
+    });
+  }
+}
+
+function typeChar() {
+  if (idx < fullText.length) {
+    display.textContent += fullText[idx++];
+    setTimeout(typeChar, 90 + Math.random() * 60);
+  } else {
+    document.getElementById('cursor').style.animation = 'none';
+    document.getElementById('cursor').style.opacity = '0';
+    setTimeout(startDark, 1400);
+  }
+}
+
+function startDark() {
+  typedDiv.classList.add('fade-out');
+  setTimeout(() => {
+    body.classList.add('dark');
+    typedDiv.style.display = 'none';
+    setTimeout(spawnLoveTexts, 600);
+  }, 1000);
+}
+
+function getRandCornerStart() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const corner = Math.floor(Math.random() * 4);
+  let x, y;
+  if      (corner === 0) { x = Math.random() * W * 0.3;             y = Math.random() * H * 0.3; }
+  else if (corner === 1) { x = W * 0.7 + Math.random() * W * 0.3;  y = Math.random() * H * 0.3; }
+  else if (corner === 2) { x = Math.random() * W * 0.3;             y = H * 0.7 + Math.random() * H * 0.3; }
+  else                   { x = W * 0.7 + Math.random() * W * 0.3;  y = H * 0.7 + Math.random() * H * 0.3; }
+  return { x, y };
+}
+
+function spawnLoveTexts() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const cx = W / 2, cy = H / 2;
+
+  for (let i = 0; i < NUM; i++) {
+    const el = document.createElement('div');
+    el.className = 'love-text';
+    el.textContent = 'I love you';
+    const start = getRandCornerStart();
+    el.style.left = start.x + 'px';
+    el.style.top  = start.y + 'px';
+    el.style.fontSize = (12 + Math.random() * 14) + 'px';
+    el.style.opacity = '0';
+    el.style.transition = `opacity 0.5s ease, left 1.4s cubic-bezier(0.2,0.8,0.4,1), top 1.4s cubic-bezier(0.2,0.8,0.4,1)`;
+    body.appendChild(el);
+    loveTexts.push({ el });
+
+    setTimeout(() => {
+      el.style.opacity = '1';
+      el.style.left = (cx + (Math.random() - 0.5) * W * 0.9) + 'px';
+      el.style.top  = (cy + (Math.random() - 0.5) * H * 0.9) + 'px';
+    }, 100 + Math.random() * 400);
+  }
+
+  setTimeout(collapseToCenter, 2800);
+}
+
+function collapseToCenter() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const cx = W / 2, cy = H / 2;
+  loveTexts.forEach(({ el }) => {
+    el.style.transition = `opacity 0.4s ease, left 0.9s cubic-bezier(0.6,0,0.8,1), top 0.9s cubic-bezier(0.6,0,0.8,1), font-size 0.4s ease`;
+    el.style.left = cx + 'px';
+    el.style.top  = cy + 'px';
+    el.style.opacity = '0.1';
+    el.style.fontSize = '10px';
+  });
+  setTimeout(formHeart, 1200);
+}
+
+function formHeart() {
+  buildHeartPath();
+  const scale = Math.min(window.innerWidth, window.innerHeight) * 0.032;
+  const fontSize = clamp(10, scale * 0.55, 20);
+
+  loveTexts.forEach(({ el }, i) => {
+    const pathIdx = Math.floor((i / NUM) * PATH_POINTS);
+    const pt = heartPath[pathIdx];
+    const hue = 340 + (i / NUM) * 40;
+
+    el.style.transition = `opacity 0.8s ease, left 1.2s cubic-bezier(0.3,0,0.2,1), top 1.2s cubic-bezier(0.3,0,0.2,1), font-size 0.8s ease, color 0.5s ease`;
+    el.style.left = pt.x + 'px';
+    el.style.top  = pt.y + 'px';
+    el.style.opacity = '1';
+    el.style.fontSize = fontSize + 'px';
+    el.style.color = `hsl(${hue}, 100%, ${60 + (i / NUM) * 15}%)`;
+    el.style.textShadow = `0 0 10px hsl(${hue}, 100%, 70%)`;
+  });
+
+  setTimeout(startWalking, 1800);
+}
+
+function startWalking() {
+  buildHeartPath();
+  const scale = Math.min(window.innerWidth, window.innerHeight) * 0.032;
+  const fontSize = clamp(10, scale * 0.55, 20);
+
+  // Each element starts evenly spaced around the full heart path
+  const startOffsets = loveTexts.map((_, i) => Math.floor((i / NUM) * PATH_POINTS));
+
+  // Remove CSS transition — rAF handles movement smoothly
+  loveTexts.forEach(({ el }) => {
+    el.style.transition = 'none';
+  });
+
+  const SPEED = 0.35; // path points advanced per frame (slowed for readability)
+  let frameOffset = 0;
+
+  function frame() {
+    frameOffset += SPEED;
+
+    loveTexts.forEach(({ el }, i) => {
+      // Each element walks forward from its own start, all at the same speed
+      const pathIdx = Math.floor((startOffsets[i] + frameOffset) % PATH_POINTS);
+      const pt = heartPath[pathIdx];
+
+      // Color cycles around the heart as they walk
+      const colorPhase = (pathIdx / PATH_POINTS);
+      const hue = 330 + colorPhase * 50;
+      const brightness = 65 + Math.sin(colorPhase * Math.PI * 2) * 15;
+
+      el.style.left = pt.x + 'px';
+      el.style.top  = pt.y + 'px';
+      el.style.color = `hsl(${hue}, 100%, ${brightness}%)`;
+      el.style.textShadow = `0 0 10px hsl(${hue}, 100%, 75%), 0 0 20px hsl(${hue}, 100%, 55%)`;
+      el.style.fontSize = fontSize + 'px';
+      el.style.opacity = '1';
+    });
+
+    requestAnimationFrame(frame);
+  }
+
+  frame();
+}
+
+setTimeout(typeChar, 500);
+</script>
+</body>
+</html>
